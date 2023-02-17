@@ -1,0 +1,9 @@
+{
+	"name": "ADF-Fokke",
+	"location": "westeurope",
+	"identity": {
+		"type": "SystemAssigned",
+		"principalId": "2507a5cf-4b0f-448c-af4a-d8068a7b99aa",
+		"tenantId": "f82b3c62-b635-402b-afa2-a1a807bbfd42"
+	}
+}

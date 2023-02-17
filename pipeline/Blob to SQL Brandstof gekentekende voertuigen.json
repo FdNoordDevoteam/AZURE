@@ -1,0 +1,395 @@
+{
+	"name": "Blob to SQL Brandstof gekentekende voertuigen",
+	"properties": {
+		"activities": [
+			{
+				"name": "Copy data1",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "JsonSource",
+						"storeSettings": {
+							"type": "AzureBlobStorageReadSettings",
+							"recursive": true,
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "JsonReadSettings"
+						}
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": false,
+						"tableOption": "autoCreate",
+						"disableMetricsCollection": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"path": "$['kenteken']"
+								},
+								"sink": {
+									"name": "kenteken",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "$['brandstof_volgnummer']"
+								},
+								"sink": {
+									"name": "brandstof_volgnummer",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "$['brandstof_omschrijving']"
+								},
+								"sink": {
+									"name": "brandstof_omschrijving",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "$['brandstofverbruik_buiten']"
+								},
+								"sink": {
+									"name": "brandstofverbruik_buiten",
+									"type": "Double"
+								}
+							},
+							{
+								"source": {
+									"path": "$['brandstofverbruik_gecombineerd']"
+								},
+								"sink": {
+									"name": "brandstofverbruik_gecombineerd",
+									"type": "Double"
+								}
+							},
+							{
+								"source": {
+									"path": "$['brandstofverbruik_stad']"
+								},
+								"sink": {
+									"name": "brandstofverbruik_stad",
+									"type": "Double"
+								}
+							},
+							{
+								"source": {
+									"path": "$['co2_uitstoot_gecombineerd']"
+								},
+								"sink": {
+									"name": "co2_uitstoot_gecombineerd",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "$['co2_uitstoot_gewogen']"
+								},
+								"sink": {
+									"name": "co2_uitstoot_gewogen",
+									"type": "Double"
+								}
+							},
+							{
+								"source": {
+									"path": "$['geluidsniveau_rijdend']"
+								},
+								"sink": {
+									"name": "geluidsniveau_rijdend",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "$['geluidsniveau_stationair']"
+								},
+								"sink": {
+									"name": "geluidsniveau_stationair",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "$['emissiecode_omschrijving']"
+								},
+								"sink": {
+									"name": "emissiecode_omschrijving",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "$['milieuklasse_eg_goedkeuring_licht']"
+								},
+								"sink": {
+									"name": "milieuklasse_eg_goedkeuring_licht",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "$['milieuklasse_eg_goedkeuring_zwaar']"
+								},
+								"sink": {
+									"name": "milieuklasse_eg_goedkeuring_zwaar",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "$['uitstoot_deeltjes_licht']"
+								},
+								"sink": {
+									"name": "uitstoot_deeltjes_licht",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "$['uitstoot_deeltjes_zwaar']"
+								},
+								"sink": {
+									"name": "uitstoot_deeltjes_zwaar",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "$['nettomaximumvermogen']"
+								},
+								"sink": {
+									"name": "nettomaximumvermogen",
+									"type": "Double"
+								}
+							},
+							{
+								"source": {
+									"path": "$['nominaal_continu_maximumvermogen']"
+								},
+								"sink": {
+									"name": "nominaal_continu_maximumvermogen",
+									"type": "Double"
+								}
+							},
+							{
+								"source": {
+									"path": "$['roetuitstoot']"
+								},
+								"sink": {
+									"name": "roetuitstoot",
+									"type": "Double"
+								}
+							},
+							{
+								"source": {
+									"path": "$['toerental_geluidsniveau']"
+								},
+								"sink": {
+									"name": "toerental_geluidsniveau",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "$['emis_deeltjes_type1_wltp']"
+								},
+								"sink": {
+									"name": "emis_deeltjes_type1_wltp",
+									"type": "Double"
+								}
+							},
+							{
+								"source": {
+									"path": "$['emissie_co2_gecombineerd_wltp']"
+								},
+								"sink": {
+									"name": "emissie_co2_gecombineerd_wltp",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "$['emis_co2_gewogen_gecombineerd_wltp']"
+								},
+								"sink": {
+									"name": "emis_co2_gewogen_gecombineerd_wltp",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "$['brandstof_verbruik_gecombineerd_wltp']"
+								},
+								"sink": {
+									"name": "brandstof_verbruik_gecombineerd_wltp",
+									"type": "Double"
+								}
+							},
+							{
+								"source": {
+									"path": "$['brandstof_verbruik_gewogen_gecombineerd_wltp']"
+								},
+								"sink": {
+									"name": "brandstof_verbruik_gewogen_gecombineerd_wltp",
+									"type": "Double"
+								}
+							},
+							{
+								"source": {
+									"path": "$['elektrisch_verbruik_enkel_elektrisch_wltp']"
+								},
+								"sink": {
+									"name": "elektrisch_verbruik_enkel_elektrisch_wltp",
+									"type": "Double"
+								}
+							},
+							{
+								"source": {
+									"path": "$['actie_radius_enkel_elektrisch_wltp']"
+								},
+								"sink": {
+									"name": "actie_radius_enkel_elektrisch_wltp",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "$['actie_radius_enkel_elektrisch_stad_wltp']"
+								},
+								"sink": {
+									"name": "actie_radius_enkel_elektrisch_stad_wltp",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "$['elektrisch_verbruik_extern_opladen_wltp']"
+								},
+								"sink": {
+									"name": "elektrisch_verbruik_extern_opladen_wltp",
+									"type": "Double"
+								}
+							},
+							{
+								"source": {
+									"path": "$['actie_radius_extern_opladen_wltp']"
+								},
+								"sink": {
+									"name": "actie_radius_extern_opladen_wltp",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "$['actie_radius_extern_opladen_stad_wltp']"
+								},
+								"sink": {
+									"name": "actie_radius_extern_opladen_stad_wltp",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "$['max_vermogen_15_minuten']"
+								},
+								"sink": {
+									"name": "max_vermogen_15_minuten",
+									"type": "Double"
+								}
+							},
+							{
+								"source": {
+									"path": "$['max_vermogen_60_minuten']"
+								},
+								"sink": {
+									"name": "max_vermogen_60_minuten",
+									"type": "Double"
+								}
+							},
+							{
+								"source": {
+									"path": "$['netto_max_vermogen_elektrisch']"
+								},
+								"sink": {
+									"name": "netto_max_vermogen_elektrisch",
+									"type": "Double"
+								}
+							},
+							{
+								"source": {
+									"path": "$['klasse_hybride_elektrisch_voertuig']"
+								},
+								"sink": {
+									"name": "klasse_hybride_elektrisch_voertuig",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "$['opgegeven_maximum_snelheid']"
+								},
+								"sink": {
+									"name": "opgegeven_maximum_snelheid",
+									"type": "Double"
+								}
+							},
+							{
+								"source": {
+									"path": "$['uitlaatemissieniveau']"
+								},
+								"sink": {
+									"name": "uitlaatemissieniveau",
+									"type": "String"
+								}
+							}
+						],
+						"mapComplexValuesToString": false
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "DS_Blob_Merge_final",
+						"type": "DatasetReference",
+						"parameters": {
+							"Par_final_Filename": "Gekentekende_voertuigen_brandstof.json"
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DS_SQL",
+						"type": "DatasetReference",
+						"parameters": {
+							"Par_DB_Name": "Gekentekende_voertuigen_brandstof"
+						}
+					}
+				]
+			}
+		],
+		"folder": {
+			"name": "Blob to SQL"
+		},
+		"annotations": [],
+		"lastPublishTime": "2023-02-16T13:32:24Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

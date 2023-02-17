@@ -1,0 +1,51 @@
+{
+	"name": "DS_SQL",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "LS_SQL_DB",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"Par_DB_Name": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [
+			{
+				"name": "locationreferencetype",
+				"type": "nvarchar"
+			},
+			{
+				"name": "locationreference",
+				"type": "nvarchar"
+			},
+			{
+				"name": "startdatelocation",
+				"type": "nvarchar"
+			},
+			{
+				"name": "longitude",
+				"type": "nvarchar"
+			},
+			{
+				"name": "latitude",
+				"type": "nvarchar"
+			},
+			{
+				"name": "enddatelocation",
+				"type": "bigint",
+				"precision": 19
+			}
+		],
+		"typeProperties": {
+			"schema": "dbo",
+			"table": {
+				"value": "@dataset().Par_DB_Name",
+				"type": "Expression"
+			}
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

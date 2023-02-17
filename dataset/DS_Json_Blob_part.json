@@ -1,0 +1,37 @@
+{
+	"name": "DS_Json_Blob_part",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "LS_BlobStorage",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"Par_Offset": {
+				"type": "string"
+			},
+			"Directory": {
+				"type": "string"
+			},
+			"Part_file_name": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"type": "Json",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobStorageLocation",
+				"fileName": {
+					"value": "@concat(dataset().Part_file_name,'-',dataset().Par_Offset,'.json')",
+					"type": "Expression"
+				},
+				"container": {
+					"value": "@dataset().Directory",
+					"type": "Expression"
+				}
+			}
+		},
+		"schema": {}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

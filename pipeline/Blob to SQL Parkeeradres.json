@@ -1,0 +1,176 @@
+{
+	"name": "Blob to SQL Parkeeradres",
+	"properties": {
+		"activities": [
+			{
+				"name": "Copy data1",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "JsonSource",
+						"storeSettings": {
+							"type": "AzureBlobStorageReadSettings",
+							"recursive": true,
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "JsonReadSettings"
+						}
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": false,
+						"tableOption": "autoCreate",
+						"disableMetricsCollection": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"path": "$['parkingaddressreferencetype']"
+								},
+								"sink": {
+									"name": "parkingaddressreferencetype"
+								}
+							},
+							{
+								"source": {
+									"path": "$['parkingaddressreference']"
+								},
+								"sink": {
+									"name": "parkingaddressreference"
+								}
+							},
+							{
+								"source": {
+									"path": "$['parkingaddresstype']"
+								},
+								"sink": {
+									"name": "parkingaddresstype",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "$['streetname']"
+								},
+								"sink": {
+									"name": "streetname",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "$['housenumber']"
+								},
+								"sink": {
+									"name": "housenumber",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "$['zipcode']"
+								},
+								"sink": {
+									"name": "zipcode",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "$['place']"
+								},
+								"sink": {
+									"name": "place",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "$['province']"
+								},
+								"sink": {
+									"name": "province",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "$['country']"
+								},
+								"sink": {
+									"name": "country",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "$['telephonenumber']"
+								},
+								"sink": {
+									"name": "telephonenumber",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "$['emailaddress']"
+								},
+								"sink": {
+									"name": "emailaddress",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "$['faxnumber']"
+								},
+								"sink": {
+									"name": "faxnumber",
+									"type": "String"
+								}
+							}
+						]
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "DS_Blob_Merge_final",
+						"type": "DatasetReference",
+						"parameters": {
+							"Par_final_Filename": "Parkeeradres.json"
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DS_SQL",
+						"type": "DatasetReference",
+						"parameters": {
+							"Par_DB_Name": "Parkeeradres"
+						}
+					}
+				]
+			}
+		],
+		"folder": {
+			"name": "Blob to SQL"
+		},
+		"annotations": [],
+		"lastPublishTime": "2023-02-16T13:08:17Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

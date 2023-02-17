@@ -1,0 +1,143 @@
+{
+	"name": "Blob to SQL Geconstateerde Gebreken",
+	"properties": {
+		"activities": [
+			{
+				"name": "Blob to SQL Geconstateerde Gebreken",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "JsonSource",
+						"storeSettings": {
+							"type": "AzureBlobStorageReadSettings",
+							"recursive": true,
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "JsonReadSettings"
+						}
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": false,
+						"tableOption": "autoCreate",
+						"disableMetricsCollection": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"path": "$['kenteken']"
+								},
+								"sink": {
+									"name": "kenteken",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "$['soort_erkenning_keuringsinstantie']"
+								},
+								"sink": {
+									"name": "soort_erkenning_keuringsinstantie",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "$['meld_datum_door_keuringsinstantie']"
+								},
+								"sink": {
+									"name": "meld_datum_door_keuringsinstantie",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "$['meld_tijd_door_keuringsinstantie']"
+								},
+								"sink": {
+									"name": "meld_tijd_door_keuringsinstantie",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "$['gebrek_identificatie']"
+								},
+								"sink": {
+									"name": "gebrek_identificatie",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "$['soort_erkenning_omschrijving']"
+								},
+								"sink": {
+									"name": "soort_erkenning_omschrijving",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "$['aantal_gebreken_geconstateerd']"
+								},
+								"sink": {
+									"name": "aantal_gebreken_geconstateerd",
+									"type": "Int32"
+								}
+							},
+							{
+								"source": {
+									"path": "$['meld_datum_door_keuringsinstantie_dt']"
+								},
+								"sink": {
+									"name": "meld_datum_door_keuringsinstantie_dt",
+									"type": "String"
+								}
+							}
+						],
+						"collectionReference": ""
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "DS_Blob_Merge_final",
+						"type": "DatasetReference",
+						"parameters": {
+							"Par_final_Filename": "Geconstateerde_Gebreken.json"
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DS_SQL",
+						"type": "DatasetReference",
+						"parameters": {
+							"Par_DB_Name": "Geconstateerde_Gebreken"
+						}
+					}
+				]
+			}
+		],
+		"folder": {
+			"name": "Blob to SQL"
+		},
+		"annotations": [],
+		"lastPublishTime": "2023-02-16T13:08:17Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

@@ -1,0 +1,104 @@
+{
+	"name": "Copy JSON to BLOB",
+	"properties": {
+		"activities": [
+			{
+				"name": "Copy JSON data to Blob",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "RestSource",
+						"httpRequestTimeout": "00:01:40",
+						"requestInterval": "00.00:00:00.010",
+						"requestMethod": "GET",
+						"paginationRules": {
+							"supportRFC5988": "true"
+						}
+					},
+					"sink": {
+						"type": "JsonSink",
+						"storeSettings": {
+							"type": "AzureBlobStorageWriteSettings"
+						},
+						"formatSettings": {
+							"type": "JsonWriteSettings"
+						}
+					},
+					"enableStaging": false
+				},
+				"inputs": [
+					{
+						"referenceName": "DS_API_RDW",
+						"type": "DatasetReference",
+						"parameters": {
+							"Par_API": {
+								"value": "@pipeline().parameters.ROOT_PAR_API",
+								"type": "Expression"
+							},
+							"Par_offset": {
+								"value": "@pipeline().parameters.ROOT_Offset",
+								"type": "Expression"
+							},
+							"Par_order": {
+								"value": "@pipeline().parameters.Root_order",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DS_Json_Blob_part",
+						"type": "DatasetReference",
+						"parameters": {
+							"Par_Offset": {
+								"value": "@pipeline().parameters.ROOT_Offset",
+								"type": "Expression"
+							},
+							"Directory": {
+								"value": "@pipeline().parameters.ROOT_Directory",
+								"type": "Expression"
+							},
+							"Part_file_name": {
+								"value": "@pipeline().parameters.ROOT_Part_Filename",
+								"type": "Expression"
+							}
+						}
+					}
+				]
+			}
+		],
+		"parameters": {
+			"ROOT_PAR_API": {
+				"type": "string"
+			},
+			"ROOT_Offset": {
+				"type": "string"
+			},
+			"ROOT_Part_Filename": {
+				"type": "string"
+			},
+			"ROOT_Directory": {
+				"type": "string"
+			},
+			"Root_order": {
+				"type": "string"
+			}
+		},
+		"folder": {
+			"name": "API to Blob"
+		},
+		"annotations": [],
+		"lastPublishTime": "2023-02-16T10:36:44Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

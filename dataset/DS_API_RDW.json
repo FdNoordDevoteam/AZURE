@@ -1,0 +1,36 @@
+{
+	"name": "DS_API_RDW",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "LS_API_RDW",
+			"type": "LinkedServiceReference",
+			"parameters": {
+				"API": {
+					"value": "@dataset().Par_API",
+					"type": "Expression"
+				}
+			}
+		},
+		"parameters": {
+			"Par_API": {
+				"type": "string"
+			},
+			"Par_offset": {
+				"type": "string"
+			},
+			"Par_order": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"type": "RestResource",
+		"typeProperties": {
+			"relativeUrl": {
+				"value": "@concat('?$limit=2000000&$order=',dataset().Par_order,'&$offset=',dataset().Par_offset)",
+				"type": "Expression"
+			}
+		},
+		"schema": []
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

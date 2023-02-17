@@ -1,0 +1,244 @@
+{
+	"name": "Until Pipeline",
+	"properties": {
+		"activities": [
+			{
+				"name": "Until Json is empty",
+				"type": "Until",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@startswith('[]',trim(activity('Check if new file is empty').output.Response))",
+						"type": "Expression"
+					},
+					"activities": [
+						{
+							"name": "Execute Pipeline1",
+							"type": "ExecutePipeline",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "Copy JSON to BLOB",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": false,
+								"parameters": {
+									"ROOT_PAR_API": {
+										"value": "@pipeline().parameters.Until_Api",
+										"type": "Expression"
+									},
+									"ROOT_Offset": {
+										"value": "@variables('Var_Offset')",
+										"type": "Expression"
+									},
+									"ROOT_Part_Filename": {
+										"value": "@pipeline().parameters.Until_par_filename",
+										"type": "Expression"
+									},
+									"ROOT_Directory": {
+										"value": "@pipeline().parameters.Until_directory",
+										"type": "Expression"
+									},
+									"Root_order": {
+										"value": "@pipeline().parameters.Until_Order",
+										"type": "Expression"
+									}
+								}
+							}
+						},
+						{
+							"name": "Set placeholder",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "Execute Pipeline1",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "Var_Placeholder",
+								"value": {
+									"value": "@variables('Var_Offset')",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "Set Offset",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "Set placeholder",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "Var_Offset",
+								"value": {
+									"value": "@string(add(int(variables('Var_Placeholder')),2000000))",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "Check if new file is empty",
+							"type": "WebActivity",
+							"dependsOn": [
+								{
+									"activity": "Set Offset",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 2,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"url": {
+									"value": "@concat(pipeline().parameters.Until_Api,'?$offset=',variables('Var_Offset'))",
+									"type": "Expression"
+								},
+								"method": "GET"
+							}
+						}
+					],
+					"timeout": "0.12:00:00"
+				}
+			},
+			{
+				"name": "Wait1",
+				"type": "Wait",
+				"dependsOn": [
+					{
+						"activity": "Until Json is empty",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"waitTimeInSeconds": 900
+				}
+			},
+			{
+				"name": "Merging files to 1 file",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Wait1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "JsonSource",
+						"storeSettings": {
+							"type": "AzureBlobStorageReadSettings",
+							"recursive": true,
+							"wildcardFileName": {
+								"value": "@concat(pipeline().parameters.Until_par_filename,'*')",
+								"type": "Expression"
+							},
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "JsonReadSettings"
+						}
+					},
+					"sink": {
+						"type": "JsonSink",
+						"storeSettings": {
+							"type": "AzureBlobStorageWriteSettings",
+							"copyBehavior": "MergeFiles"
+						},
+						"formatSettings": {
+							"type": "JsonWriteSettings"
+						}
+					},
+					"enableStaging": false
+				},
+				"inputs": [
+					{
+						"referenceName": "DS_Json_blob_part_merge",
+						"type": "DatasetReference",
+						"parameters": {
+							"Par_directory": {
+								"value": "@pipeline().parameters.Until_directory",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DS_Blob_Merge_final",
+						"type": "DatasetReference",
+						"parameters": {
+							"Par_final_Filename": {
+								"value": "@pipeline().parameters.Until_Final_file_name",
+								"type": "Expression"
+							}
+						}
+					}
+				]
+			}
+		],
+		"parameters": {
+			"Until_Api": {
+				"type": "string"
+			},
+			"Until_par_filename": {
+				"type": "string"
+			},
+			"Until_directory": {
+				"type": "string"
+			},
+			"Until_Order": {
+				"type": "string"
+			},
+			"Until_Final_file_name": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"Var_Offset": {
+				"type": "String",
+				"defaultValue": "0"
+			},
+			"Var_Placeholder": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "API to Blob"
+		},
+		"annotations": [],
+		"lastPublishTime": "2023-02-16T11:26:39Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

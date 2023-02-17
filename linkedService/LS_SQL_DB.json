@@ -1,0 +1,12 @@
+{
+	"name": "LS_SQL_DB",
+	"type": "Microsoft.DataFactory/factories/linkedservices",
+	"properties": {
+		"annotations": [],
+		"type": "AzureSqlDatabase",
+		"typeProperties": {
+			"connectionString": "integrated security=False;encrypt=True;connection timeout=30;data source=sql-server-fokke.database.windows.net;initial catalog=SQL-DB-Fokke;user id=adminfokke",
+			"encryptedCredential": "ew0KICAiVmVyc2lvbiI6ICIyMDE3LTExLTMwIiwNCiAgIlByb3RlY3Rpb25Nb2RlIjogIktleSIsDQogICJTZWNyZXRDb250ZW50VHlwZSI6ICJQbGFpbnRleHQiLA0KICAiQ3JlZGVudGlhbElkIjogIkRBVEFGQUNUT1JZQDREMkQyRkIyLTIxNEMtNDY5QS1CODlELURFQ0M0MUJCM0U4Ql9lNGNhYjcyMy0yMzQyLTRhM2QtOGZmOC01OWVkZTc1M2U5NDciDQp9"
+		}
+	}
+}

@@ -1,0 +1,106 @@
+{
+	"name": "Blob to SQL Gebreken",
+	"properties": {
+		"activities": [
+			{
+				"name": "Copy data1",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "JsonSource",
+						"storeSettings": {
+							"type": "AzureBlobStorageReadSettings",
+							"recursive": true,
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "JsonReadSettings"
+						}
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": false,
+						"tableOption": "autoCreate",
+						"disableMetricsCollection": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"path": "$['gebrek_identificatie']"
+								},
+								"sink": {
+									"name": "gebrek_identificatie",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "$['gebrek_omschrijving']"
+								},
+								"sink": {
+									"name": "gebrek_omschrijving",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "$['ingangsdatum_gebrek_dt']"
+								},
+								"sink": {
+									"name": "ingangsdatum_gebrek_dt",
+									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"path": "$['einddatum_gebrek_dt']"
+								},
+								"sink": {
+									"name": "einddatum_gebrek_dt",
+									"type": "String"
+								}
+							}
+						]
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "DS_Blob_Merge_final",
+						"type": "DatasetReference",
+						"parameters": {
+							"Par_final_Filename": "Gebreken.json"
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DS_SQL",
+						"type": "DatasetReference",
+						"parameters": {
+							"Par_DB_Name": "Gebreken"
+						}
+					}
+				]
+			}
+		],
+		"folder": {
+			"name": "Blob to SQL"
+		},
+		"annotations": [],
+		"lastPublishTime": "2023-02-16T13:08:17Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}
