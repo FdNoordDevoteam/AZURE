@@ -1,0 +1,2679 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"type": "string",
+			"metadata": "Data Factory name",
+			"defaultValue": "ADF-Fokke"
+		},
+		"LS_BlobStorage_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'LS_BlobStorage'"
+		},
+		"LS_SQL_DB_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'LS_SQL_DB'"
+		},
+		"LS_API_RDW_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "@{linkedService().API}"
+		}
+	},
+	"variables": {
+		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+	},
+	"resources": [
+		{
+			"name": "[concat(parameters('factoryName'), '/LS_API_RDW')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"parameters": {
+					"API": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "RestService",
+				"typeProperties": {
+					"url": "[parameters('LS_API_RDW_properties_typeProperties_url')]",
+					"enableServerCertificateValidation": true,
+					"authenticationType": "Anonymous"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/LS_BlobStorage')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureBlobStorage",
+				"typeProperties": {
+					"connectionString": "[parameters('LS_BlobStorage_connectionString')]"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/LS_SQL_DB')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureSqlDatabase",
+				"typeProperties": {
+					"connectionString": "[parameters('LS_SQL_DB_connectionString')]"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DS_API_RDW')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_API_RDW",
+					"type": "LinkedServiceReference",
+					"parameters": {
+						"API": {
+							"value": "@dataset().Par_API",
+							"type": "Expression"
+						}
+					}
+				},
+				"parameters": {
+					"Par_API": {
+						"type": "string"
+					},
+					"Par_offset": {
+						"type": "string"
+					},
+					"Par_order": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "RestResource",
+				"typeProperties": {
+					"relativeUrl": {
+						"value": "@concat('?$limit=2000000&$order=',dataset().Par_order,'&$offset=',dataset().Par_offset)",
+						"type": "Expression"
+					}
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_API_RDW')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DS_Blob_Merge_final')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_BlobStorage",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"Par_final_Filename": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "Json",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobStorageLocation",
+						"fileName": {
+							"value": "@dataset().Par_final_Filename",
+							"type": "Expression"
+						},
+						"container": "rdwdata"
+					}
+				},
+				"schema": {}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_BlobStorage')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DS_Json_Blob_part')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_BlobStorage",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"Par_Offset": {
+						"type": "string"
+					},
+					"Directory": {
+						"type": "string"
+					},
+					"Part_file_name": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "Json",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobStorageLocation",
+						"fileName": {
+							"value": "@concat(dataset().Part_file_name,'-',dataset().Par_Offset,'.json')",
+							"type": "Expression"
+						},
+						"container": {
+							"value": "@dataset().Directory",
+							"type": "Expression"
+						}
+					}
+				},
+				"schema": {}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_BlobStorage')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DS_Json_blob_part_merge')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_BlobStorage",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"Par_directory": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "Json",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobStorageLocation",
+						"container": {
+							"value": "@dataset().Par_directory",
+							"type": "Expression"
+						}
+					}
+				},
+				"schema": {}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_BlobStorage')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DS_SQL')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_SQL_DB",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"Par_DB_Name": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "locationreferencetype",
+						"type": "nvarchar"
+					},
+					{
+						"name": "locationreference",
+						"type": "nvarchar"
+					},
+					{
+						"name": "startdatelocation",
+						"type": "nvarchar"
+					},
+					{
+						"name": "longitude",
+						"type": "nvarchar"
+					},
+					{
+						"name": "latitude",
+						"type": "nvarchar"
+					},
+					{
+						"name": "enddatelocation",
+						"type": "bigint",
+						"precision": 19
+					}
+				],
+				"typeProperties": {
+					"schema": "dbo",
+					"table": {
+						"value": "@dataset().Par_DB_Name",
+						"type": "Expression"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_SQL_DB')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Blob to SQL Brandstof gekentekende voertuigen')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Copy data1",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "JsonSource",
+								"storeSettings": {
+									"type": "AzureBlobStorageReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "JsonReadSettings"
+								}
+							},
+							"sink": {
+								"type": "AzureSqlSink",
+								"writeBehavior": "insert",
+								"sqlWriterUseTableLock": false,
+								"tableOption": "autoCreate",
+								"disableMetricsCollection": false
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"path": "$['kenteken']"
+										},
+										"sink": {
+											"name": "kenteken",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['brandstof_volgnummer']"
+										},
+										"sink": {
+											"name": "brandstof_volgnummer",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['brandstof_omschrijving']"
+										},
+										"sink": {
+											"name": "brandstof_omschrijving",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['brandstofverbruik_buiten']"
+										},
+										"sink": {
+											"name": "brandstofverbruik_buiten",
+											"type": "Double"
+										}
+									},
+									{
+										"source": {
+											"path": "$['brandstofverbruik_gecombineerd']"
+										},
+										"sink": {
+											"name": "brandstofverbruik_gecombineerd",
+											"type": "Double"
+										}
+									},
+									{
+										"source": {
+											"path": "$['brandstofverbruik_stad']"
+										},
+										"sink": {
+											"name": "brandstofverbruik_stad",
+											"type": "Double"
+										}
+									},
+									{
+										"source": {
+											"path": "$['co2_uitstoot_gecombineerd']"
+										},
+										"sink": {
+											"name": "co2_uitstoot_gecombineerd",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['co2_uitstoot_gewogen']"
+										},
+										"sink": {
+											"name": "co2_uitstoot_gewogen",
+											"type": "Double"
+										}
+									},
+									{
+										"source": {
+											"path": "$['geluidsniveau_rijdend']"
+										},
+										"sink": {
+											"name": "geluidsniveau_rijdend",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['geluidsniveau_stationair']"
+										},
+										"sink": {
+											"name": "geluidsniveau_stationair",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['emissiecode_omschrijving']"
+										},
+										"sink": {
+											"name": "emissiecode_omschrijving",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['milieuklasse_eg_goedkeuring_licht']"
+										},
+										"sink": {
+											"name": "milieuklasse_eg_goedkeuring_licht",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['milieuklasse_eg_goedkeuring_zwaar']"
+										},
+										"sink": {
+											"name": "milieuklasse_eg_goedkeuring_zwaar",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['uitstoot_deeltjes_licht']"
+										},
+										"sink": {
+											"name": "uitstoot_deeltjes_licht",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['uitstoot_deeltjes_zwaar']"
+										},
+										"sink": {
+											"name": "uitstoot_deeltjes_zwaar",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['nettomaximumvermogen']"
+										},
+										"sink": {
+											"name": "nettomaximumvermogen",
+											"type": "Double"
+										}
+									},
+									{
+										"source": {
+											"path": "$['nominaal_continu_maximumvermogen']"
+										},
+										"sink": {
+											"name": "nominaal_continu_maximumvermogen",
+											"type": "Double"
+										}
+									},
+									{
+										"source": {
+											"path": "$['roetuitstoot']"
+										},
+										"sink": {
+											"name": "roetuitstoot",
+											"type": "Double"
+										}
+									},
+									{
+										"source": {
+											"path": "$['toerental_geluidsniveau']"
+										},
+										"sink": {
+											"name": "toerental_geluidsniveau",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['emis_deeltjes_type1_wltp']"
+										},
+										"sink": {
+											"name": "emis_deeltjes_type1_wltp",
+											"type": "Double"
+										}
+									},
+									{
+										"source": {
+											"path": "$['emissie_co2_gecombineerd_wltp']"
+										},
+										"sink": {
+											"name": "emissie_co2_gecombineerd_wltp",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['emis_co2_gewogen_gecombineerd_wltp']"
+										},
+										"sink": {
+											"name": "emis_co2_gewogen_gecombineerd_wltp",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['brandstof_verbruik_gecombineerd_wltp']"
+										},
+										"sink": {
+											"name": "brandstof_verbruik_gecombineerd_wltp",
+											"type": "Double"
+										}
+									},
+									{
+										"source": {
+											"path": "$['brandstof_verbruik_gewogen_gecombineerd_wltp']"
+										},
+										"sink": {
+											"name": "brandstof_verbruik_gewogen_gecombineerd_wltp",
+											"type": "Double"
+										}
+									},
+									{
+										"source": {
+											"path": "$['elektrisch_verbruik_enkel_elektrisch_wltp']"
+										},
+										"sink": {
+											"name": "elektrisch_verbruik_enkel_elektrisch_wltp",
+											"type": "Double"
+										}
+									},
+									{
+										"source": {
+											"path": "$['actie_radius_enkel_elektrisch_wltp']"
+										},
+										"sink": {
+											"name": "actie_radius_enkel_elektrisch_wltp",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['actie_radius_enkel_elektrisch_stad_wltp']"
+										},
+										"sink": {
+											"name": "actie_radius_enkel_elektrisch_stad_wltp",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['elektrisch_verbruik_extern_opladen_wltp']"
+										},
+										"sink": {
+											"name": "elektrisch_verbruik_extern_opladen_wltp",
+											"type": "Double"
+										}
+									},
+									{
+										"source": {
+											"path": "$['actie_radius_extern_opladen_wltp']"
+										},
+										"sink": {
+											"name": "actie_radius_extern_opladen_wltp",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['actie_radius_extern_opladen_stad_wltp']"
+										},
+										"sink": {
+											"name": "actie_radius_extern_opladen_stad_wltp",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['max_vermogen_15_minuten']"
+										},
+										"sink": {
+											"name": "max_vermogen_15_minuten",
+											"type": "Double"
+										}
+									},
+									{
+										"source": {
+											"path": "$['max_vermogen_60_minuten']"
+										},
+										"sink": {
+											"name": "max_vermogen_60_minuten",
+											"type": "Double"
+										}
+									},
+									{
+										"source": {
+											"path": "$['netto_max_vermogen_elektrisch']"
+										},
+										"sink": {
+											"name": "netto_max_vermogen_elektrisch",
+											"type": "Double"
+										}
+									},
+									{
+										"source": {
+											"path": "$['klasse_hybride_elektrisch_voertuig']"
+										},
+										"sink": {
+											"name": "klasse_hybride_elektrisch_voertuig",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['opgegeven_maximum_snelheid']"
+										},
+										"sink": {
+											"name": "opgegeven_maximum_snelheid",
+											"type": "Double"
+										}
+									},
+									{
+										"source": {
+											"path": "$['uitlaatemissieniveau']"
+										},
+										"sink": {
+											"name": "uitlaatemissieniveau",
+											"type": "String"
+										}
+									}
+								],
+								"mapComplexValuesToString": false
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "DS_Blob_Merge_final",
+								"type": "DatasetReference",
+								"parameters": {
+									"Par_final_Filename": "Gekentekende_voertuigen_brandstof.json"
+								}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "DS_SQL",
+								"type": "DatasetReference",
+								"parameters": {
+									"Par_DB_Name": "Gekentekende_voertuigen_brandstof"
+								}
+							}
+						]
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"folder": {
+					"name": "Blob to SQL"
+				},
+				"annotations": [],
+				"lastPublishTime": "2023-02-16T13:32:24Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/DS_Blob_Merge_final')]",
+				"[concat(variables('factoryId'), '/datasets/DS_SQL')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Blob to SQL GPS-Coordinaten')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Copy data1",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "JsonSource",
+								"storeSettings": {
+									"type": "AzureBlobStorageReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "JsonReadSettings"
+								}
+							},
+							"sink": {
+								"type": "AzureSqlSink",
+								"writeBehavior": "insert",
+								"sqlWriterUseTableLock": false,
+								"tableOption": "autoCreate",
+								"disableMetricsCollection": false
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"path": "$['locationreferencetype']"
+										},
+										"sink": {
+											"name": "locationreferencetype",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['locationreference']"
+										},
+										"sink": {
+											"name": "locationreference",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['startdatelocation']"
+										},
+										"sink": {
+											"name": "startdatelocation",
+											"type": "Int64"
+										}
+									},
+									{
+										"source": {
+											"path": "$['enddatelocation']"
+										},
+										"sink": {
+											"name": "enddatelocation",
+											"type": "Int64"
+										}
+									},
+									{
+										"source": {
+											"path": "$['longitude']"
+										},
+										"sink": {
+											"name": "longitude",
+											"type": "Double"
+										}
+									},
+									{
+										"source": {
+											"path": "$['latitude']"
+										},
+										"sink": {
+											"name": "latitude",
+											"type": "Double"
+										}
+									}
+								]
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "DS_Blob_Merge_final",
+								"type": "DatasetReference",
+								"parameters": {
+									"Par_final_Filename": "GPS-Coordinaten_Parkeerlocatie.json"
+								}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "DS_SQL",
+								"type": "DatasetReference",
+								"parameters": {
+									"Par_DB_Name": "GPS-Coordinaten_Parkeerlocatie"
+								}
+							}
+						]
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"folder": {
+					"name": "Blob to SQL"
+				},
+				"annotations": [],
+				"lastPublishTime": "2023-02-16T13:08:17Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/DS_Blob_Merge_final')]",
+				"[concat(variables('factoryId'), '/datasets/DS_SQL')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Blob to SQL Gebreken')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Copy data1",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "JsonSource",
+								"storeSettings": {
+									"type": "AzureBlobStorageReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "JsonReadSettings"
+								}
+							},
+							"sink": {
+								"type": "AzureSqlSink",
+								"writeBehavior": "insert",
+								"sqlWriterUseTableLock": false,
+								"tableOption": "autoCreate",
+								"disableMetricsCollection": false
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"path": "$['gebrek_identificatie']"
+										},
+										"sink": {
+											"name": "gebrek_identificatie",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['gebrek_omschrijving']"
+										},
+										"sink": {
+											"name": "gebrek_omschrijving",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['ingangsdatum_gebrek_dt']"
+										},
+										"sink": {
+											"name": "ingangsdatum_gebrek_dt",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['einddatum_gebrek_dt']"
+										},
+										"sink": {
+											"name": "einddatum_gebrek_dt",
+											"type": "String"
+										}
+									}
+								]
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "DS_Blob_Merge_final",
+								"type": "DatasetReference",
+								"parameters": {
+									"Par_final_Filename": "Gebreken.json"
+								}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "DS_SQL",
+								"type": "DatasetReference",
+								"parameters": {
+									"Par_DB_Name": "Gebreken"
+								}
+							}
+						]
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"folder": {
+					"name": "Blob to SQL"
+				},
+				"annotations": [],
+				"lastPublishTime": "2023-02-16T13:08:17Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/DS_Blob_Merge_final')]",
+				"[concat(variables('factoryId'), '/datasets/DS_SQL')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Blob to SQL Geconstateerde Gebreken')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Blob to SQL Geconstateerde Gebreken",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "JsonSource",
+								"storeSettings": {
+									"type": "AzureBlobStorageReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "JsonReadSettings"
+								}
+							},
+							"sink": {
+								"type": "AzureSqlSink",
+								"writeBehavior": "insert",
+								"sqlWriterUseTableLock": false,
+								"tableOption": "autoCreate",
+								"disableMetricsCollection": false
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"path": "$['kenteken']"
+										},
+										"sink": {
+											"name": "kenteken",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['soort_erkenning_keuringsinstantie']"
+										},
+										"sink": {
+											"name": "soort_erkenning_keuringsinstantie",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['meld_datum_door_keuringsinstantie']"
+										},
+										"sink": {
+											"name": "meld_datum_door_keuringsinstantie",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['meld_tijd_door_keuringsinstantie']"
+										},
+										"sink": {
+											"name": "meld_tijd_door_keuringsinstantie",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['gebrek_identificatie']"
+										},
+										"sink": {
+											"name": "gebrek_identificatie",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['soort_erkenning_omschrijving']"
+										},
+										"sink": {
+											"name": "soort_erkenning_omschrijving",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['aantal_gebreken_geconstateerd']"
+										},
+										"sink": {
+											"name": "aantal_gebreken_geconstateerd",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['meld_datum_door_keuringsinstantie_dt']"
+										},
+										"sink": {
+											"name": "meld_datum_door_keuringsinstantie_dt",
+											"type": "String"
+										}
+									}
+								],
+								"collectionReference": ""
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "DS_Blob_Merge_final",
+								"type": "DatasetReference",
+								"parameters": {
+									"Par_final_Filename": "Geconstateerde_Gebreken.json"
+								}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "DS_SQL",
+								"type": "DatasetReference",
+								"parameters": {
+									"Par_DB_Name": "Geconstateerde_Gebreken"
+								}
+							}
+						]
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"folder": {
+					"name": "Blob to SQL"
+				},
+				"annotations": [],
+				"lastPublishTime": "2023-02-16T13:08:17Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/DS_Blob_Merge_final')]",
+				"[concat(variables('factoryId'), '/datasets/DS_SQL')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Blob to SQL Gekentekende Voertuigen')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Copy data1",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "JsonSource",
+								"storeSettings": {
+									"type": "AzureBlobStorageReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "JsonReadSettings"
+								}
+							},
+							"sink": {
+								"type": "AzureSqlSink",
+								"preCopyScript": "TRUNCATE TABLE dbo.Gekentekende_voertuigen",
+								"writeBehavior": "insert",
+								"sqlWriterUseTableLock": false,
+								"tableOption": "autoCreate",
+								"disableMetricsCollection": false
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"path": "$['kenteken']"
+										},
+										"sink": {
+											"name": "kenteken",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['voertuigsoort']"
+										},
+										"sink": {
+											"name": "voertuigsoort",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['merk']"
+										},
+										"sink": {
+											"name": "merk",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['handelsbenaming']"
+										},
+										"sink": {
+											"name": "handelsbenaming",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['vervaldatum_apk']"
+										},
+										"sink": {
+											"name": "vervaldatum_apk",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['datum_tenaamstelling']"
+										},
+										"sink": {
+											"name": "datum_tenaamstelling",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['bruto_bpm']"
+										},
+										"sink": {
+											"name": "bruto_bpm",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['inrichting']"
+										},
+										"sink": {
+											"name": "inrichting",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['aantal_zitplaatsen']"
+										},
+										"sink": {
+											"name": "aantal_zitplaatsen",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['eerste_kleur']"
+										},
+										"sink": {
+											"name": "eerste_kleur",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['tweede_kleur']"
+										},
+										"sink": {
+											"name": "tweede_kleur",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['aantal_cilinders']"
+										},
+										"sink": {
+											"name": "aantal_cilinders",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['cilinderinhoud']"
+										},
+										"sink": {
+											"name": "cilinderinhoud",
+											"type": "Double"
+										}
+									},
+									{
+										"source": {
+											"path": "$['massa_ledig_voertuig']"
+										},
+										"sink": {
+											"name": "massa_ledig_voertuig",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['toegestane_maximum_massa_voertuig']"
+										},
+										"sink": {
+											"name": "toegestane_maximum_massa_voertuig",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['massa_rijklaar']"
+										},
+										"sink": {
+											"name": "massa_rijklaar",
+											"type": "Double"
+										}
+									},
+									{
+										"source": {
+											"path": "$['maximum_massa_trekken_ongeremd']"
+										},
+										"sink": {
+											"name": "maximum_massa_trekken_ongeremd",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['maximum_trekken_massa_geremd']"
+										},
+										"sink": {
+											"name": "maximum_trekken_massa_geremd",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['datum_eerste_toelating']"
+										},
+										"sink": {
+											"name": "datum_eerste_toelating",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['datum_eerste_tenaamstelling_in_nederland']"
+										},
+										"sink": {
+											"name": "datum_eerste_tenaamstelling_in_nederland",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['wacht_op_keuren']"
+										},
+										"sink": {
+											"name": "wacht_op_keuren",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['catalogusprijs']"
+										},
+										"sink": {
+											"name": "catalogusprijs",
+											"type": "Double"
+										}
+									},
+									{
+										"source": {
+											"path": "$['wam_verzekerd']"
+										},
+										"sink": {
+											"name": "wam_verzekerd",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['maximale_constructiesnelheid']"
+										},
+										"sink": {
+											"name": "maximale_constructiesnelheid",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['laadvermogen']"
+										},
+										"sink": {
+											"name": "laadvermogen",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['oplegger_geremd']"
+										},
+										"sink": {
+											"name": "oplegger_geremd",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['aanhangwagen_autonoom_geremd']"
+										},
+										"sink": {
+											"name": "aanhangwagen_autonoom_geremd",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['aanhangwagen_middenas_geremd']"
+										},
+										"sink": {
+											"name": "aanhangwagen_middenas_geremd",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['aantal_staanplaatsen']"
+										},
+										"sink": {
+											"name": "aantal_staanplaatsen",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['aantal_deuren']"
+										},
+										"sink": {
+											"name": "aantal_deuren",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['aantal_wielen']"
+										},
+										"sink": {
+											"name": "aantal_wielen",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['afstand_hart_koppeling_tot_achterzijde_voertuig']"
+										},
+										"sink": {
+											"name": "afstand_hart_koppeling_tot_achterzijde_voertuig",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['afstand_voorzijde_voertuig_tot_hart_koppeling']"
+										},
+										"sink": {
+											"name": "afstand_voorzijde_voertuig_tot_hart_koppeling",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['afwijkende_maximum_snelheid']"
+										},
+										"sink": {
+											"name": "afwijkende_maximum_snelheid",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['lengte']"
+										},
+										"sink": {
+											"name": "lengte",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['breedte']"
+										},
+										"sink": {
+											"name": "breedte",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['europese_voertuigcategorie']"
+										},
+										"sink": {
+											"name": "europese_voertuigcategorie",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['europese_voertuigcategorie_toevoeging']"
+										},
+										"sink": {
+											"name": "europese_voertuigcategorie_toevoeging",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['europese_uitvoeringcategorie_toevoeging']"
+										},
+										"sink": {
+											"name": "europese_uitvoeringcategorie_toevoeging",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['plaats_chassisnummer']"
+										},
+										"sink": {
+											"name": "plaats_chassisnummer",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['technische_max_massa_voertuig']"
+										},
+										"sink": {
+											"name": "technische_max_massa_voertuig",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['type']"
+										},
+										"sink": {
+											"name": "type",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['type_gasinstallatie']"
+										},
+										"sink": {
+											"name": "type_gasinstallatie",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['typegoedkeuringsnummer']"
+										},
+										"sink": {
+											"name": "typegoedkeuringsnummer",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['variant']"
+										},
+										"sink": {
+											"name": "variant",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['uitvoering']"
+										},
+										"sink": {
+											"name": "uitvoering",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['volgnummer_wijziging_eu_typegoedkeuring']"
+										},
+										"sink": {
+											"name": "volgnummer_wijziging_eu_typegoedkeuring",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['vermogen_massarijklaar']"
+										},
+										"sink": {
+											"name": "vermogen_massarijklaar",
+											"type": "Double"
+										}
+									},
+									{
+										"source": {
+											"path": "$['wielbasis']"
+										},
+										"sink": {
+											"name": "wielbasis",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['export_indicator']"
+										},
+										"sink": {
+											"name": "export_indicator",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['openstaande_terugroepactie_indicator']"
+										},
+										"sink": {
+											"name": "openstaande_terugroepactie_indicator",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['vervaldatum_tachograaf']"
+										},
+										"sink": {
+											"name": "vervaldatum_tachograaf",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['taxi_indicator']"
+										},
+										"sink": {
+											"name": "taxi_indicator",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['maximum_massa_samenstelling']"
+										},
+										"sink": {
+											"name": "maximum_massa_samenstelling",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['aantal_rolstoelplaatsen']"
+										},
+										"sink": {
+											"name": "aantal_rolstoelplaatsen",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['maximum_ondersteunende_snelheid']"
+										},
+										"sink": {
+											"name": "maximum_ondersteunende_snelheid",
+											"type": "Double"
+										}
+									},
+									{
+										"source": {
+											"path": "$['jaar_laatste_registratie_tellerstand']"
+										},
+										"sink": {
+											"name": "jaar_laatste_registratie_tellerstand",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['tellerstandoordeel']"
+										},
+										"sink": {
+											"name": "tellerstandoordeel",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['code_toelichting_tellerstandoordeel']"
+										},
+										"sink": {
+											"name": "code_toelichting_tellerstandoordeel",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['tenaamstellen_mogelijk']"
+										},
+										"sink": {
+											"name": "tenaamstellen_mogelijk",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['vervaldatum_apk_dt']"
+										},
+										"sink": {
+											"name": "vervaldatum_apk_dt",
+											"type": "DateTime"
+										}
+									},
+									{
+										"source": {
+											"path": "$['datum_tenaamstelling_dt']"
+										},
+										"sink": {
+											"name": "datum_tenaamstelling_dt",
+											"type": "DateTime"
+										}
+									},
+									{
+										"source": {
+											"path": "$['datum_eerste_toelating_dt']"
+										},
+										"sink": {
+											"name": "datum_eerste_toelating_dt",
+											"type": "DateTime"
+										}
+									},
+									{
+										"source": {
+											"path": "$['datum_eerste_tenaamstelling_in_nederland_dt']"
+										},
+										"sink": {
+											"name": "datum_eerste_tenaamstelling_in_nederland_dt",
+											"type": "DateTime"
+										}
+									},
+									{
+										"source": {
+											"path": "$['vervaldatum_tachograaf_dt']"
+										},
+										"sink": {
+											"name": "vervaldatum_tachograaf_dt",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['maximum_last_onder_de_vooras_sen_tezamen_koppeling']"
+										},
+										"sink": {
+											"name": "maximum_last_onder_de_vooras_sen_tezamen_koppeling",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['type_remsysteem_voertuig_code']"
+										},
+										"sink": {
+											"name": "type_remsysteem_voertuig_code",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['rupsonderstelconfiguratiecode']"
+										},
+										"sink": {
+											"name": "rupsonderstelconfiguratiecode",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['wielbasis_voertuig_minimum']"
+										},
+										"sink": {
+											"name": "wielbasis_voertuig_minimum",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['wielbasis_voertuig_maximum']"
+										},
+										"sink": {
+											"name": "wielbasis_voertuig_maximum",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['lengte_voertuig_minimum']"
+										},
+										"sink": {
+											"name": "lengte_voertuig_minimum",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['lengte_voertuig_maximum']"
+										},
+										"sink": {
+											"name": "lengte_voertuig_maximum",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['breedte_voertuig_minimum']"
+										},
+										"sink": {
+											"name": "breedte_voertuig_minimum",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['breedte_voertuig_maximum']"
+										},
+										"sink": {
+											"name": "breedte_voertuig_maximum",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['hoogte_voertuig']"
+										},
+										"sink": {
+											"name": "hoogte_voertuig",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['hoogte_voertuig_minimum']"
+										},
+										"sink": {
+											"name": "hoogte_voertuig_minimum",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['hoogte_voertuig_maximum']"
+										},
+										"sink": {
+											"name": "hoogte_voertuig_maximum",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['massa_bedrijfsklaar_minimaal']"
+										},
+										"sink": {
+											"name": "massa_bedrijfsklaar_minimaal",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['massa_bedrijfsklaar_maximaal']"
+										},
+										"sink": {
+											"name": "massa_bedrijfsklaar_maximaal",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['technisch_toelaatbaar_massa_koppelpunt']"
+										},
+										"sink": {
+											"name": "technisch_toelaatbaar_massa_koppelpunt",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['maximum_massa_technisch_maximaal']"
+										},
+										"sink": {
+											"name": "maximum_massa_technisch_maximaal",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['maximum_massa_technisch_minimaal']"
+										},
+										"sink": {
+											"name": "maximum_massa_technisch_minimaal",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['subcategorie_nederland']"
+										},
+										"sink": {
+											"name": "subcategorie_nederland",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['verticale_belasting_koppelpunt_getrokken_voertuig']"
+										},
+										"sink": {
+											"name": "verticale_belasting_koppelpunt_getrokken_voertuig",
+											"type": "Int32"
+										}
+									},
+									{
+										"source": {
+											"path": "$['zuinigheidsclassificatie']"
+										},
+										"sink": {
+											"name": "zuinigheidsclassificatie",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['registratie_datum_goedkeuring_afschrijvingsmoment_bpm']"
+										},
+										"sink": {
+											"name": "registratie_datum_goedkeuring_afschrijvingsmoment_bpm",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['registratie_datum_goedkeuring_afschrijvingsmoment_bpm_dt']"
+										},
+										"sink": {
+											"name": "registratie_datum_goedkeuring_afschrijvingsmoment_bpm_dt",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['api_gekentekende_voertuigen_assen']"
+										},
+										"sink": {
+											"name": "api_gekentekende_voertuigen_assen",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['api_gekentekende_voertuigen_brandstof']"
+										},
+										"sink": {
+											"name": "api_gekentekende_voertuigen_brandstof",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['api_gekentekende_voertuigen_carrosserie']"
+										},
+										"sink": {
+											"name": "api_gekentekende_voertuigen_carrosserie",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['api_gekentekende_voertuigen_carrosserie_specifiek']"
+										},
+										"sink": {
+											"name": "api_gekentekende_voertuigen_carrosserie_specifiek",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['api_gekentekende_voertuigen_voertuigklasse']"
+										},
+										"sink": {
+											"name": "api_gekentekende_voertuigen_voertuigklasse",
+											"type": "String"
+										}
+									}
+								]
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "DS_Blob_Merge_final",
+								"type": "DatasetReference",
+								"parameters": {
+									"Par_final_Filename": "Gekentekende_voertuigen.json"
+								}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "DS_SQL",
+								"type": "DatasetReference",
+								"parameters": {
+									"Par_DB_Name": "Gekentekende_voertuigen"
+								}
+							}
+						]
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"folder": {
+					"name": "Blob to SQL"
+				},
+				"annotations": [],
+				"lastPublishTime": "2023-02-16T17:45:33Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/DS_Blob_Merge_final')]",
+				"[concat(variables('factoryId'), '/datasets/DS_SQL')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Blob to SQL Parkeeradres')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Copy data1",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "JsonSource",
+								"storeSettings": {
+									"type": "AzureBlobStorageReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "JsonReadSettings"
+								}
+							},
+							"sink": {
+								"type": "AzureSqlSink",
+								"writeBehavior": "insert",
+								"sqlWriterUseTableLock": false,
+								"tableOption": "autoCreate",
+								"disableMetricsCollection": false
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"path": "$['parkingaddressreferencetype']"
+										},
+										"sink": {
+											"name": "parkingaddressreferencetype"
+										}
+									},
+									{
+										"source": {
+											"path": "$['parkingaddressreference']"
+										},
+										"sink": {
+											"name": "parkingaddressreference"
+										}
+									},
+									{
+										"source": {
+											"path": "$['parkingaddresstype']"
+										},
+										"sink": {
+											"name": "parkingaddresstype",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['streetname']"
+										},
+										"sink": {
+											"name": "streetname",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['housenumber']"
+										},
+										"sink": {
+											"name": "housenumber",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['zipcode']"
+										},
+										"sink": {
+											"name": "zipcode",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['place']"
+										},
+										"sink": {
+											"name": "place",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['province']"
+										},
+										"sink": {
+											"name": "province",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['country']"
+										},
+										"sink": {
+											"name": "country",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['telephonenumber']"
+										},
+										"sink": {
+											"name": "telephonenumber",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['emailaddress']"
+										},
+										"sink": {
+											"name": "emailaddress",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['faxnumber']"
+										},
+										"sink": {
+											"name": "faxnumber",
+											"type": "String"
+										}
+									}
+								]
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "DS_Blob_Merge_final",
+								"type": "DatasetReference",
+								"parameters": {
+									"Par_final_Filename": "Parkeeradres.json"
+								}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "DS_SQL",
+								"type": "DatasetReference",
+								"parameters": {
+									"Par_DB_Name": "Parkeeradres"
+								}
+							}
+						]
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"folder": {
+					"name": "Blob to SQL"
+				},
+				"annotations": [],
+				"lastPublishTime": "2023-02-16T13:08:17Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/DS_Blob_Merge_final')]",
+				"[concat(variables('factoryId'), '/datasets/DS_SQL')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Copy JSON to BLOB')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Copy JSON data to Blob",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "RestSource",
+								"httpRequestTimeout": "00:01:40",
+								"requestInterval": "00.00:00:00.010",
+								"requestMethod": "GET",
+								"paginationRules": {
+									"supportRFC5988": "true"
+								}
+							},
+							"sink": {
+								"type": "JsonSink",
+								"storeSettings": {
+									"type": "AzureBlobStorageWriteSettings"
+								},
+								"formatSettings": {
+									"type": "JsonWriteSettings"
+								}
+							},
+							"enableStaging": false
+						},
+						"inputs": [
+							{
+								"referenceName": "DS_API_RDW",
+								"type": "DatasetReference",
+								"parameters": {
+									"Par_API": {
+										"value": "@pipeline().parameters.ROOT_PAR_API",
+										"type": "Expression"
+									},
+									"Par_offset": {
+										"value": "@pipeline().parameters.ROOT_Offset",
+										"type": "Expression"
+									},
+									"Par_order": {
+										"value": "@pipeline().parameters.Root_order",
+										"type": "Expression"
+									}
+								}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "DS_Json_Blob_part",
+								"type": "DatasetReference",
+								"parameters": {
+									"Par_Offset": {
+										"value": "@pipeline().parameters.ROOT_Offset",
+										"type": "Expression"
+									},
+									"Directory": {
+										"value": "@pipeline().parameters.ROOT_Directory",
+										"type": "Expression"
+									},
+									"Part_file_name": {
+										"value": "@pipeline().parameters.ROOT_Part_Filename",
+										"type": "Expression"
+									}
+								}
+							}
+						]
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"parameters": {
+					"ROOT_PAR_API": {
+						"type": "string"
+					},
+					"ROOT_Offset": {
+						"type": "string"
+					},
+					"ROOT_Part_Filename": {
+						"type": "string"
+					},
+					"ROOT_Directory": {
+						"type": "string"
+					},
+					"Root_order": {
+						"type": "string"
+					}
+				},
+				"folder": {
+					"name": "API to Blob"
+				},
+				"annotations": [],
+				"lastPublishTime": "2023-02-16T10:36:44Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/DS_API_RDW')]",
+				"[concat(variables('factoryId'), '/datasets/DS_Json_Blob_part')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Until Pipeline')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Until Json is empty",
+						"type": "Until",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"expression": {
+								"value": "@startswith('[]',trim(activity('Check if new file is empty').output.Response))",
+								"type": "Expression"
+							},
+							"activities": [
+								{
+									"name": "Execute Pipeline1",
+									"type": "ExecutePipeline",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"pipeline": {
+											"referenceName": "Copy JSON to BLOB",
+											"type": "PipelineReference"
+										},
+										"waitOnCompletion": false,
+										"parameters": {
+											"ROOT_PAR_API": {
+												"value": "@pipeline().parameters.Until_Api",
+												"type": "Expression"
+											},
+											"ROOT_Offset": {
+												"value": "@variables('Var_Offset')",
+												"type": "Expression"
+											},
+											"ROOT_Part_Filename": {
+												"value": "@pipeline().parameters.Until_par_filename",
+												"type": "Expression"
+											},
+											"ROOT_Directory": {
+												"value": "@pipeline().parameters.Until_directory",
+												"type": "Expression"
+											},
+											"Root_order": {
+												"value": "@pipeline().parameters.Until_Order",
+												"type": "Expression"
+											}
+										}
+									}
+								},
+								{
+									"name": "Set placeholder",
+									"type": "SetVariable",
+									"dependsOn": [
+										{
+											"activity": "Execute Pipeline1",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "Var_Placeholder",
+										"value": {
+											"value": "@variables('Var_Offset')",
+											"type": "Expression"
+										}
+									}
+								},
+								{
+									"name": "Set Offset",
+									"type": "SetVariable",
+									"dependsOn": [
+										{
+											"activity": "Set placeholder",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "Var_Offset",
+										"value": {
+											"value": "@string(add(int(variables('Var_Placeholder')),2000000))",
+											"type": "Expression"
+										}
+									}
+								},
+								{
+									"name": "Check if new file is empty",
+									"type": "WebActivity",
+									"dependsOn": [
+										{
+											"activity": "Set Offset",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 2,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"url": {
+											"value": "@concat(pipeline().parameters.Until_Api,'?$offset=',variables('Var_Offset'))",
+											"type": "Expression"
+										},
+										"method": "GET",
+										"headers": {}
+									}
+								}
+							],
+							"timeout": "0.12:00:00"
+						}
+					},
+					{
+						"name": "Wait1",
+						"type": "Wait",
+						"dependsOn": [
+							{
+								"activity": "Until Json is empty",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"waitTimeInSeconds": 900
+						}
+					},
+					{
+						"name": "Merging files to 1 file",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "Wait1",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "JsonSource",
+								"storeSettings": {
+									"type": "AzureBlobStorageReadSettings",
+									"recursive": true,
+									"wildcardFileName": {
+										"value": "@concat(pipeline().parameters.Until_par_filename,'*')",
+										"type": "Expression"
+									},
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "JsonReadSettings"
+								}
+							},
+							"sink": {
+								"type": "JsonSink",
+								"storeSettings": {
+									"type": "AzureBlobStorageWriteSettings",
+									"copyBehavior": "MergeFiles"
+								},
+								"formatSettings": {
+									"type": "JsonWriteSettings"
+								}
+							},
+							"enableStaging": false
+						},
+						"inputs": [
+							{
+								"referenceName": "DS_Json_blob_part_merge",
+								"type": "DatasetReference",
+								"parameters": {
+									"Par_directory": {
+										"value": "@pipeline().parameters.Until_directory",
+										"type": "Expression"
+									}
+								}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "DS_Blob_Merge_final",
+								"type": "DatasetReference",
+								"parameters": {
+									"Par_final_Filename": {
+										"value": "@pipeline().parameters.Until_Final_file_name",
+										"type": "Expression"
+									}
+								}
+							}
+						]
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"parameters": {
+					"Until_Api": {
+						"type": "string"
+					},
+					"Until_par_filename": {
+						"type": "string"
+					},
+					"Until_directory": {
+						"type": "string"
+					},
+					"Until_Order": {
+						"type": "string"
+					},
+					"Until_Final_file_name": {
+						"type": "string"
+					}
+				},
+				"variables": {
+					"Var_Offset": {
+						"type": "String",
+						"defaultValue": "0"
+					},
+					"Var_Placeholder": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "API to Blob"
+				},
+				"annotations": [],
+				"lastPublishTime": "2023-02-16T11:26:39Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/DS_Json_blob_part_merge')]",
+				"[concat(variables('factoryId'), '/datasets/DS_Blob_Merge_final')]",
+				"[concat(variables('factoryId'), '/pipelines/Copy JSON to BLOB')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/One Pipeline to rule them all')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "GPS-Coordinaten_Parkeerlocatie",
+						"type": "ExecutePipeline",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "Until Pipeline",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {
+								"Until_Api": "https://opendata.rdw.nl/resource/k3dr-ge3w.json",
+								"Until_par_filename": "GPS-Coordinaten_Parkeerlocatie_part",
+								"Until_directory": "rdwdatapartitions",
+								"Until_Order": "locationreferencetype",
+								"Until_Final_file_name": "GPS-Coordinaten_Parkeerlocatie.json"
+							}
+						}
+					},
+					{
+						"name": "Parkeeradres",
+						"type": "ExecutePipeline",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "Until Pipeline",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {
+								"Until_Api": "https://opendata.rdw.nl/resource/ygq4-hh5q.json",
+								"Until_par_filename": "Parkeeradres_part",
+								"Until_directory": "rdwdatapartitions",
+								"Until_Order": "parkingaddressreferencetype",
+								"Until_Final_file_name": "Parkeeradres.json"
+							}
+						}
+					},
+					{
+						"name": "Gebreken",
+						"type": "ExecutePipeline",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "Until Pipeline",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {
+								"Until_Api": "https://opendata.rdw.nl/resource/jj88-z7ey.json",
+								"Until_par_filename": "Gebreken_part",
+								"Until_directory": "rdwdatapartitions",
+								"Until_Order": "gebrek_identificatie",
+								"Until_Final_file_name": "Gebreken.json"
+							}
+						}
+					},
+					{
+						"name": "Geconstateerde Gebreken",
+						"type": "ExecutePipeline",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "Until Pipeline",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {
+								"Until_Api": "https://opendata.rdw.nl/resource/a34c-vvps.json",
+								"Until_par_filename": "Geconstateerde_Gebreken_part",
+								"Until_directory": "rdwdatapartitions",
+								"Until_Order": "kenteken",
+								"Until_Final_file_name": "Geconstateerde_Gebreken.json"
+							}
+						}
+					},
+					{
+						"name": "Gekentekende Voertuigen Brandstof",
+						"type": "ExecutePipeline",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "Until Pipeline",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {
+								"Until_Api": "https://opendata.rdw.nl/resource/8ys7-d773.json",
+								"Until_par_filename": "Gekentekende_voertuigen_brandstof_part",
+								"Until_directory": "rdwdatapartitions",
+								"Until_Order": "kenteken",
+								"Until_Final_file_name": "Gekentekende_voertuigen_brandstof.json"
+							}
+						}
+					},
+					{
+						"name": "Gekentekekende Voertuigen",
+						"type": "ExecutePipeline",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "Until Pipeline",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {
+								"Until_Api": "https://opendata.rdw.nl/resource/m9d7-ebf2.json",
+								"Until_par_filename": "Gekentekende_voertuigen_part",
+								"Until_directory": "rdwdatapartitions",
+								"Until_Order": "kenteken",
+								"Until_Final_file_name": "Gekentekende_voertuigen.json"
+							}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"folder": {
+					"name": "API to Blob"
+				},
+				"annotations": [],
+				"lastPublishTime": "2023-02-17T11:07:50Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/pipelines/Until Pipeline')]"
+			]
+		}
+	]
+}
