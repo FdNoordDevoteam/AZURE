@@ -1,0 +1,25 @@
+Create Procedure [dbo].[RefreshTable]
+AS
+
+Update PL
+Set Quantity = PIn.Quantity,
+Productname = P.name,
+LocationName = L.Name,
+Modifydate = CURRENT_TIMESTAMP
+From Production.ProductperLocation PL
+Join Production.Location L ON L.LocationID = PL.locationID
+JOIN Production.Product P ON P.ProductID = PL.productID
+JOIN Production.ProductInventory PIn ON PL.ProductID = PIn.ProductID and PL.LocationID = PIn.LocationID
+Where PL.Quantity <> PIn.Quantity or PL.Productname <> P.name or PL.LocationName <> L.name;
+
+Delete PPL From Production.ProductPerLocation PPL
+Full JOIN Production.ProductInventory PIv ON PPL.ProductID = PIv.ProductID and PPL.LocationID = PIv.LocationID
+Where Piv.ProductID is NULL or Piv.LocationID is Null;
+
+INSERT INTO production.ProductPerLocation (ProductID, LocationID, ProductName, Locationname, Quantity)
+Select PIv.ProductID, PIV.LocationID, P.name, L.Name, PIv.Quantity
+From Production.Productinventory PIv
+Inner JOIN production.Location L ON Piv.LocationID = L.LocationID
+Inner JOIN Production.Product P ON P.ProductID = PIv.ProductID
+Full JOIN Production.ProductPerLocation PPL ON PPL.ProductID = PIv.ProductID and PPL.LocationID = PIv.LocationID
+Where PPL.ProductID is NULL or PPL.LocationID is Null;
