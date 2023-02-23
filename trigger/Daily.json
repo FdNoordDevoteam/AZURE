@@ -1,0 +1,25 @@
+{
+	"name": "Daily",
+	"properties": {
+		"description": "12:00 run refresh",
+		"annotations": [],
+		"runtimeState": "Started",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "pipeline1",
+					"type": "PipelineReference"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Day",
+				"interval": 1,
+				"startTime": "2023-02-23T12:00:00Z",
+				"timeZone": "UTC"
+			}
+		}
+	}
+}
