@@ -8,6 +8,9 @@
 		"LS_BlobStorage_connectionString": {
 			"value": ""
 		},
+		"LS_SQL_AdventureWorks_connectionString": {
+			"value": ""
+		},
 		"LS_SQL_DB_connectionString": {
 			"value": ""
 		},
